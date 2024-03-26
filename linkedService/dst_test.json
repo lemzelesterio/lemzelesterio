@@ -1,0 +1,31 @@
+{
+	"name": "dst_test",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"dst_test_server": {
+				"type": "string"
+			},
+			"dst_test_db": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Data Source=@{linkedService().dst_test_server};Initial Catalog=@{linkedService().dst_test_db};User ID=ts_adf_db_ssv",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "TS_FA_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Azure-Data-Factory-ts-adf-db"
+			}
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

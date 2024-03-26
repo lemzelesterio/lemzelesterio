@@ -1,0 +1,23 @@
+{
+	"name": "w19_cli0019_master",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlMI",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=pccsql-use2-prod-w19-cli0019.3055e0bc69f6.database.windows.net;Initial Catalog=master;User ID=ts_adf_db_ssv",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "TS_FA_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Azure-Data-Factory-ts-adf-db"
+			}
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

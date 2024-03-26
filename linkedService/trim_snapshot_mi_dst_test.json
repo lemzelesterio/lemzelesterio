@@ -1,0 +1,31 @@
+{
+	"name": "trim_snapshot_mi_dst_test",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"t_s_dst_test_server": {
+				"type": "String"
+			},
+			"t_s_dst_test_db": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlMI",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=@{linkedService().t_s_dst_test_server};Initial Catalog=@{linkedService().t_s_dst_test_db};User ID=ts_adf_db_ssv",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "TS_FA_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Azure-Data-Factory-ts-adf-db"
+			}
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

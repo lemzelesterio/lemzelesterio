@@ -1,0 +1,23 @@
+{
+	"name": "test_usei501",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlMI",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=pccsql-use2-prod-ssv-tscon05.b4ea653240a9.database.windows.net;Initial Catalog=test_usei501;User ID=ts_adf_db_ssv",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "TS_FA_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Azure-Data-Factory-ts-adf-db"
+			}
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

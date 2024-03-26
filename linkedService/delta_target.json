@@ -1,0 +1,31 @@
+{
+	"name": "delta_target",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"target_server": {
+				"type": "String"
+			},
+			"target_db": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlMI",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=@{linkedService().target_server};Initial Catalog=@{linkedService().target_db};User ID=ts_adf_db_ssv",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "TS_FA_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Azure-Data-Factory-ts-adf-db"
+			}
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

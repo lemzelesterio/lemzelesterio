@@ -1,0 +1,83 @@
+{
+	"name": "TST-1587 ASB to NewOrg",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Sync Versions",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Acquire New Target Sync Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "select \ntarget_sync_version\n,last_sync_version\nfrom delta_sync_version_tracking\nwhere test_db_name = 'test_usei472'"
+						}
+					]
+				}
+			},
+			{
+				"name": "Acquire New Target Sync Version",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_facacq_delta_check_version]",
+					"storedProcedureParameters": {
+						"source_db": {
+							"value": "test_usei1079",
+							"type": "String"
+						},
+						"source_server": {
+							"value": "[pccsql-use2-prod-ssv-tscon11.b4ea653240a9.database.windows.net]",
+							"type": "String"
+						},
+						"test_db": {
+							"value": "test_usei472",
+							"type": "String"
+						},
+						"test_server": {
+							"value": "[pccsql-use2-prod-ssv-tscon06.b4ea653240a9.database.windows.net]",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"folder": {
+			"name": "Do Not Use"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-06-09T21:36:49Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

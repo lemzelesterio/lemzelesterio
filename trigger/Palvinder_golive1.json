@@ -1,0 +1,30 @@
+{
+	"name": "Palvinder_golive1",
+	"properties": {
+		"description": "BRK to VAL2 E028758 ",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2024-03-14T23:00:00",
+				"endTime": "2024-03-16T00:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						0
+					],
+					"monthDays": [
+						15
+					]
+				}
+			}
+		}
+	}
+}

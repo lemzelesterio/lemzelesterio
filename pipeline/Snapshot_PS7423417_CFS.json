@@ -1,0 +1,1706 @@
+{
+	"name": "Snapshot_PS7423417_CFS",
+	"properties": {
+		"activities": [
+			{
+				"name": "Single_Input",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "SELECT TOP 1\nRunID\n,'Case' + CaseNo as CaseNo\n,PMO_number,SrcOrgCode,DstOrgCode,SrcFacIDs\n,Exclude_Admin_Notes,Exclude_Cust_UDA,Exclude_CP_Lib,Exclude_Alerts,Exclude_Inc\n,Exclude_MISC,Exclude_Roles,Exclude_AR\n,convert(varchar,New_AR_Start,121) as New_AR_Start\n,Exclude_Trust,Exclude_GLAP,Exclude_GLAP_Bank\n,Exclude_Master_Insur,Exclude_QIA\n,'N' as ProdRun\n,If_Current_Resident\n,convert(varchar,Current_Resident_As_Of,121) as Current_Resident_As_Of\n,'[' + SRC.ServerName + ']' AS SRC_SERVER\n,'[' + SRC.ServerName + '].' + SRC.DatabaseName AS SRC_SERVER_DB\n,SRC.DatabaseName AS SRC_DB\n,'[' + DST.ServerName + ']' AS DST_SERVER\n,'[' + DST.ServerName + '].' + DST.DatabaseName AS DST_SERVER_DB\n,DST.DatabaseName AS DST_DB\n,'' as Netsuite_IDs\n,ds_resource\n,If_Multi_to_Single\n,If_All_Users\n,If_Trimming\nFROM LoadTrimmingSnapshot WITH (NOLOCK)\nJOIN ds_tasks.dbo.TS_global_organization_master SRC WITH (NOLOCK) ON LoadTrimmingSnapshot.SrcOrgCode = SRC.OrgCode AND SRC.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master DST WITH (NOLOCK) ON LoadTrimmingSnapshot.DstOrgCode = DST.OrgCode AND DST.DELETED = 'N'\nWHERE RUNID = 1066",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "LoadDCNMaster",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_disableAndCleanup",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Custom Pre Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_disableAndCleanup]"
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_enableAll",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_copy2_joins",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_enableAll]"
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_pre_std_fix",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_adf_w_SP_creation src",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_pre_std_fix]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_src_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_src_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_src_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_post_checks",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Temp Fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_post_checks]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DST_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_post_std_fix",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Custom Post Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_post_std_fix]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						},
+						"source_db": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"template_db": {
+							"value": "[vmuspatmpcli01.pccprod.local].us_template_pccsingle_tmpltOH",
+							"type": "String"
+						},
+						"if_multi_to_single": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.if_multi_to_single}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_prepare_copy_tables",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_disableAndCleanup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sproc_snapshot_trim_adf_w_SP_creation dst",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Custom Pre Script in SRC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If All Users",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_prepare_copy_tables]",
+					"storedProcedureParameters": {
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_copy1_facid_and_nojoin",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "If Current Resident Only",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If Exclude UDA",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If Exclude AR and Collections",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If Exclude Trust",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Other Tables Removed",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If Trim Remove Big Tables and Aging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_copy1_facid_and_nojoin]",
+					"storedProcedureParameters": {
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_copy2_joins",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_copy1_facid_and_nojoin",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_snapshot_trim_copy2_joins]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "If Current Resident Only",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(activity('Single_Input').output.firstRow.If_Current_Resident,'Y'),equals(activity('Single_Input').output.firstRow.If_Trimming,'N'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Set Current Resident Filter",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "update dbo.CopyFac\nset queryfilter = isnull(queryfilter,'') + case when queryfilter is NULL then ' (client_id in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null  and current_census_id is not null ) or client_id is NULL or client_id < 0)'\n else ' and' + ' (client_id in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null  and current_census_id is not null ) or client_id is NULL or client_id < 0)' end -- enter the list of client_id to be excluded\nwhere tablename in (select table_name from information_schema.columns where column_name in ('client_id'))\nand joins in ('0','-1','0A')\nand tablename not in ('auth_remote_resource_configuration')\n\nupdate dbo.CopyFac\nset queryfilter = isnull(queryfilter,'') + case when queryfilter is NULL then ' (a.client_id in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null  and current_census_id is not null ) or a.client_id is NULL or a.client_id < 0)'\n else ' and' + ' (a.client_id in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null and current_census_id is not null ) or a.client_id is NULL or a.client_id < 0)' end -- enter the list of client_id to be excluded\n--select * from copyfac\nwhere tablename in (select table_name from information_schema.columns where column_name in ('client_id'))\nand joins not in ('0','-1','0A')\nand tablename not in ('auth_remote_resource_configuration')\n\nupdate dbo.CopyFac\nset queryfilter = isnull(queryfilter,'') + case when queryfilter is NULL then ' (clientid in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null  and current_census_id is not null ) or clientid is NULL or clientid < 0)'\n else ' and' + ' (clientid in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null and current_census_id is not null ) or clientid is NULL or clientid < 0)' end -- enter the list of client_id to be excluded\nwhere tablename in (select table_name from information_schema.columns where column_name in ('clientid'))\nand joins in ('0','-1')\nand tablename not in ('auth_remote_resource_configuration')\n\nupdate dbo.CopyFac\nset queryfilter = isnull(queryfilter,'') + case when queryfilter is NULL then ' (a.clientid in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null  and current_census_id is not null ) or a.clientid is NULL or a.clientid < 0)'\n else ' and' + ' (a.clientid in (select client_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.clients where fac_id in (select fac_id from facility where fac_id <> 9001) and isnull(discharge_date,getdate()) >= ''@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}'' AND admission_Date is not null and current_census_id is not null ) or a.clientid is NULL or a.clientid < 0)' end -- enter the list of client_id to be excluded\n--select * from copyfac\nwhere tablename in (select table_name from information_schema.columns where column_name in ('clientid'))\nand joins not in ('0','-1')\nand tablename not in ('auth_remote_resource_configuration')",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Exclude UDA",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(activity('Single_Input').output.firstRow.Exclude_Cust_UDA,'Y'),equals(activity('Single_Input').output.firstRow.If_Trimming,'N'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Set UDA Filter",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "update dbo.copyfac\nset queryfilter = ' std_assess_id  in (select std_assess_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.as_std_assessment where system_flag = ''Y'' or std_assess_id in (\nselect std_assess_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.as_std_assessment_system_assessment_mapping) )' -- enter the list of std_assess_id to be included in the copy\nwhere tablename in (select table_name from information_schema.columns where column_name = 'std_assess_id')\nand joins in ('0','-1')\n\nupdate dbo.copyfac\nset queryfilter = ' a.std_assess_id  in (select std_assess_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.as_std_assessment where system_flag = ''Y'' or std_assess_id in (\nselect std_assess_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.as_std_assessment_system_assessment_mapping) )' -- enter the list of std_assess_id to be included in the copy\n--select * from copyfac\nwhere tablename in (select table_name from information_schema.columns where column_name = 'std_assess_id')\nand joins not in ('0','-1')",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Exclude AR and Collections",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(activity('Single_Input').output.firstRow.Exclude_AR,'Y'),equals(activity('Single_Input').output.firstRow.If_Trimming,'N'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Filter AR",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "IF OBJECT_ID('tempdb..#tempartabletoexclude') IS NOT NULL DROP TABLE #tempartabletoexclude\n\nselect tablename into #tempartabletoexclude\nfrom copyfac where tablename in\n('ar_transactions_payment','ar_transaction_recurring_tx_refs','ar_unapplied_cash','ar_batch_poc_info','ar_transactions_contact_cash'\n,'ar_sbb_client_service_package_detail','ar_aging_snapshot','ar_claim_cob_amt','ar_claim_cob_cas','ar_claim_cob_payer','ar_invoice_claim','ar_invoice_transaction'\n,'ar_invoice_statement','ar_claim_cob_nte','ar_claim_additional_payer_info','ar_invoice','ar_invoice_batch','ar_applied_payment_history','ar_mppr_bumpup'\n,'ar_transaction_admin_fee_xrefs','ar_transactions','ar_transactions_rollup_client','edi_import_detail_message','edi_import_detail','ar_batch'\n,'edi_import','ar_collections_letter_generation','ar_collection_call','work_activity','ar_admission_charge_recurring_transaction','ar_recurring_transactions'\n,'ar_client_income','AR_THERAPY_PREVIOUS_AMOUNTS','ar_aging_check_summary','cash_receipt_check_summary','current_day_check_summary','current_revenue_check_summary'\n,'data_integrity_check_summary','past_day_check_summary','past_revenue_check_summary'\n,'ar_dso_client_balance','ar_batch_errors','ar_collection_call_txs','ar_import_835_result','ar_import_835_txn_result','ar_invoice_link')\n\ndelete \n--select *\nfrom copyfac where tablename in\n(select tablename from #tempartabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where tablename in\n(select tablename from #tempartabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where parenttable in\n(select tablename from #tempartabletoexclude)",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Exclude Trust",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(activity('Single_Input').output.firstRow.Exclude_Trust,'Y'),equals(activity('Single_Input').output.firstRow.If_Trimming,'N'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Filter Trust",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "IF OBJECT_ID('tempdb..#temptatabletoexclude') IS NOT NULL DROP TABLE #temptatabletoexclude\n\nselect tablename into #temptatabletoexclude\nfrom copyfac where tablename in\n('ta_transaction','ta_batch','ta_statement','ta_client_account','ta_client_income_source','ta_configuration_audit','ta_vendor')\n\n\ndelete \n--select *\nfrom copyfac where tablename in\n(select tablename from #temptatabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where tablename in\n(select tablename from #temptatabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where parenttable in\n(select tablename from #temptatabletoexclude)",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_adf_w_SP_creation dst",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Check DB Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_snapshot_trim_adf_w_SP_creation]",
+					"storedProcedureParameters": {
+						"casenumber": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_database_name": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DST_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_server": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DST_SERVER}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Custom Pre Script in DST",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Check DB Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "delete reporting.rpt_recent_visited_report",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Custom Pre Script in SRC",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_pre_std_fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_src_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_src_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_src_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "\tUPDATE BRANDED_LIBRARY_FEATURE_OPTION_CONF\n\tSET STATUS_ID = '5',READONLY = 1\n\tWHERE FAC_ID IN (@{activity('Single_Input').output.firstRow.SrcFacIDs})\n\tAND BRAND_ID = 6\n\tAND SEQUENCE = 1\n\n\tUPDATE BRANDED_LIBRARY_FEATURE_CONFIGURATION\n\tSET VALUE = 'N'\n\t,REVISION_BY = '@{activity('Single_Input').output.firstRow.CaseNo}'\n\t,REVISION_DATE = getdate()\n\t,ENABLED_BY = NULL\n\t,ENABLED_DATE = NULL\n\t,DISABLED_BY = '@{activity('Single_Input').output.firstRow.CaseNo}'\n\t,DISABLED_DATE = getdate()\n\tWHERE FAC_ID IN (@{activity('Single_Input').output.firstRow.SrcFacIDs}) \n\tAND BRAND_ID = 6\n\tAND SEQUENCE = 1\n\tAND NAME = 'ENABLE_CP_PARTNER_FEATURE'",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Temp Fix",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Custom Post Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_src_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_src_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_src_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "IF OBJECT_ID('_CopyTable') IS NOT NULL DROP TABLE _CopyTable\n\nSELECT * INTO _CopyTable from @{activity('Single_Input').output.firstRow.DST_DB}.dbo._CopyTable\n",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Custom Post Script in DST",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_enableAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "exec sproc_core_refresh_cached_org_record \n\nSET IDENTITY_INSERT scrm_dashboard ON\ninsert into scrm_dashboard (dashboard_id,user_id,system,name,created_by,created_date,revision_by,revision_date)\nselect * from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.scrm_dashboard src\nwhere src.user_id is NULL\nand not exists (select 1 from scrm_dashboard where src.dashboard_id = dashboard_id)\nSET IDENTITY_INSERT scrm_dashboard OFF\n\ninsert into scrm_dashboard_tile\nselect * from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.scrm_dashboard_tile src\nwhere src.dashboard_id in (select dashboard_id from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.scrm_dashboard where user_id is NULL)\nand not exists (select 1 from scrm_dashboard_tile where src.dashboard_id = dashboard_id)\nselect 1 from facility with (nolock)\n\ninsert into sec_user\nselect * from @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.sec_user\nwhere userid not in (select userid from sec_user)\nand admin_user_type = 'E'\nand fac_id not in (@{activity('Single_Input').output.firstRow.SrcFacIDs})\nand loginname NOT like '%pcc-%'",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Bkp and Clean up temp tables",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_post_checks",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sproc_snapshot_trim_post_std_fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If Snapshot Module Clean up",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "\nDECLARE @ID INT\nDECLARE @TableName varchar(500)\nDECLARE @rowcount int\nDECLARE @SQL varchar(max)\nDECLARE @casenumber varchar(100)\nDECLARE @log_db varchar(100) = 'pcc_temp_storage'\n\n\nSET @casenumber = '@{activity('Single_Input').output.firstRow.CaseNo}'\n\n\nDECLARE MyCursor CURSOR FOR\n\tselect  name\n\tfrom sys.objects where type = 'U' and name in ('_TrimFK','_TrimTriggers','_TrimViews','_TrimTable','_CopyTable','CopyFac','CopyFacJoin','_OtherFac_id_table','_copyfacconditions')\nOPEN MyCursor\nFETCH NEXT FROM MyCursor INTO @TableName\nWHILE @@Fetch_Status =0\nBEGIN\n\t\t\n\t\tIF OBJECT_ID(@log_db + '.dbo.' + @casenumber + @TableName, 'U') IS NOT NULL EXEC ('DROP TABLE ' + @log_db + '.dbo.' + @casenumber + @TableName)\n\t\t\n\t\tSET @SQL = 'select * into ' + @log_db + '.dbo.' + @casenumber + @TableName + ' from dbo.' + @TableName\n\t\tPRINT @SQL\n\t\tEXEC (@SQL)\n\n\t\tSET @SQL = 'drop table dbo.' + @TableName\n\t\tPRINT @SQL\n\t\tEXEC (@SQL)\n\t\t\n\tFETCH NEXT FROM MyCursor INTO @TableName\n\tEND\nCLOSE MyCursor\nDEALLOCATE MyCursor\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_post_cleanups]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_copy1_facid_and_nojoin]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_copy2_joins]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_post_checks]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_post_std_fix]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_pre_std_fix]\n\nDROP PROCEDURE IF EXISTS [operational].[sproc_snapshot_trim_prepare_copy_tables]\n",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Src DB Version",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Single_Input",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_src_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_src_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_src_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "select top 1 db_version_code as src_version\nfrom pcc_db_version with (nolock)\norder by db_upload_date desc\n",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Dst DB Version",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Get Src DB Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "if not exists (\nselect 1\nfrom pcc_db_version with (nolock)\nwhere db_version_code='@{activity('Get Src DB Version').output.resultSets[0]['rows'][0].src_version}'\n)\n\nbegin\nselect top 1 db_version_code as dst_version\nfrom pcc_db_version with (nolock)\norder by db_upload_date desc\nend\n\nelse \nbegin\nselect '@{activity('Get Src DB Version').output.resultSets[0]['rows'][0].src_version}' as dst_version\nend \n",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Check DB Version",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Dst DB Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Get Src DB Version').output.resultSets[0]['rows'][0].src_version,activity('Get Dst DB Version').output.resultSets[0]['rows'][0].dst_version)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "DB Version Email",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "\ndeclare @subject varchar(200)\ndeclare @message varchar(2000)\n\n\nset @subject = 'Trimming/Snapshot DB Versions Different - ' + '@{activity('Single_Input').output.firstRow.CaseNo}'\nset @message = 'DB versions are different between source and destination DB. Please check log and verify impact.'\n\nEXEC msdb.dbo.sp_send_dbmail @recipients = '@{activity('Single_Input').output.firstRow.ds_resource}@pointclickcare.com'\n\t,@subject = @subject\n\t,@body = @message\n\t,@body_format = 'HTML';\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "10:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If All Users",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_pre_std_fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(activity('Single_Input').output.firstRow.If_All_Users,'Y'),equals(activity('Single_Input').output.firstRow.If_Trimming,'N'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Change fac_id for all users",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_src_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_src_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_src_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "update sec_user\nset fac_id = (select top 1 fac_id from facility where fac_id in (@{activity('Single_Input').output.firstRow.SrcFacIDs})) \nwhere fac_id not in (@{activity('Single_Input').output.firstRow.SrcFacIDs})",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Other Tables Removed",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "IF OBJECT_ID('tempdb..#tempother') IS NOT NULL DROP TABLE #tempother\n\nselect tablename into #tempother\nfrom copyfac where tablename in\n('upload_files_deleted','file_metadata_backup')\n\n\ndelete \n--select *\nfrom copyfac where tablename in\n(select tablename from #tempother)\n\ndelete \n--select *\nfrom copyfacjoin where tablename in\n(select tablename from #tempother)\n\ndelete \n--select *\nfrom copyfacjoin where parenttable in\n(select tablename from #tempother)",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "sproc_snapshot_trim_adf_w_SP_creation src",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Check DB Version",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_snapshot_trim_adf_w_SP_creation]",
+					"storedProcedureParameters": {
+						"casenumber": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_database_name": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_server": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_SERVER}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "If Trim Remove Big Tables and Aging",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_prepare_copy_tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.If_Trimming,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Remove Big Tables",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "\nIF OBJECT_ID('tempdb..#tempagingtabletoexclude') IS NOT NULL DROP TABLE #tempagingtabletoexclude\n\nselect tablename into #tempagingtabletoexclude\nfrom copyfac where tablename in\n('th_minutes_stage1','th_minutes_stage2','contact_history','contact_merge_history','login_history','mpi_contact_history','mpi_merge_history'\n,'edi_import_detail_message','edi_import_detail'\n,'as_response_history'\n,'pho_schedule_details_history','pho_schedule_details_deleted'\n,'cp_duration_detail_deleted','cp_qshift_detail_deleted','cp_scheduled_detail_deleted'\n,'cp_duration_response_history','cp_duration_documentation_history','cp_duration_detail_history','cp_duration_documentation_strikeout_history'\n,'cp_prn_documentation_history','cp_prn_documentation_strikeout_history','cp_prn_response_history'\n,'cp_qshift_detail_history','cp_qshift_documentation_history','cp_qshift_documentation_strikeout_history','cp_qshift_response_history'\n,'cp_scheduled_detail_history','cp_scheduled_documentation_history','cp_scheduled_documentation_strikeout_history','cp_scheduled_response_history')\n\n\ndelete \n--select *\nfrom copyfac where tablename in\n(select tablename from #tempagingtabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where tablename in\n(select tablename from #tempagingtabletoexclude)\n\ndelete \n--select *\nfrom copyfacjoin where parenttable in\n(select tablename from #tempagingtabletoexclude)",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "as_response aging",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Remove Big Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_src_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_src_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_src_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "------trim as_response\nIF EXISTS (\n\t\tSELECT *\n\t\tFROM sys.foreign_keys\n\t\tWHERE object_id = OBJECT_ID(N'[dbo].[as_response_trigger_item__assessResponseId_FK]')\n\t\t\tAND parent_object_id = OBJECT_ID(N'[dbo].[as_response_trigger_item]')\n\t\t)\n\tALTER TABLE [dbo].[as_response_trigger_item]\n\nDROP CONSTRAINT [as_response_trigger_item__assessResponseId_FK]\n\n\nIF EXISTS (\n\t\tSELECT *\n\t\tFROM sys.foreign_keys\n\t\tWHERE object_id = OBJECT_ID(N'[dbo].[as_response_collection__assessResponseId_FK]')\n\t\t\tAND parent_object_id = OBJECT_ID(N'[dbo].[as_response_collection]')\n\t\t)\n\tALTER TABLE [as_response_collection]\n\nDROP CONSTRAINT [as_response_collection__assessResponseId_FK]\n\nCREATE TABLE [dbo].[as_response_temp] (\n\t[assess_response_id] [bigint] NOT NULL\n\t,[assess_id] [int] NULL\n\t,[question_key] [varchar](25) NULL\n\t,[item_value] [varchar](2000) NULL\n\t,[acknowledged] [varchar](1) NULL\n\t,[created_date] [datetime] NULL\n\t,[position_desc] [varchar](254) NULL\n\t,[revision_date] [datetime] NULL\n\t,[revision_by] [varchar](60) NULL\n\t,[long_username] [varchar](60) NULL\n\t,[revision_date_utc_offset] datetimeoffset NULL\n\t) ON [PRIMARY]\n\n\nDECLARE @trim_date DATETIME\n\nSET @trim_date = dateadd(mm, - 1, datediff(dd, 0, getdate()))\n\n--====================================================\ndeclare @fac_id varchar(max)\nset @fac_id = '@{activity('Single_Input').output.firstRow.SrcFacIDs}'   --put the required fac_ids mentioned in the case\n\nIF (object_id('tempdb..#temp_Facility', 'U') IS NOT NULL)\nBEGIN\n\tDROP TABLE #temp_Facility\nEND\n\nselect facid, row_number () over (order by facid) as rown\ninto #temp_Facility\nfrom (select cast(items as int) as facid\nfrom dbo.split (@fac_id,',')) as t\n\ndeclare @count int\ndeclare @i int\n\nselect @count=count(*) from #temp_Facility\nset @i=1\n\nwhile @i<=@count\n\nbegin \n\nIF (object_id('tempdb..#as_response', 'U') IS NOT NULL)\nBEGIN\n\tDROP TABLE #as_response\nEND\n\ndeclare @facid int\nselect @facid=facid from #temp_Facility where rown=@i\n\nSELECT a.[assess_response_id]\n\t,a.[assess_id]\n\t,a.[question_key]\n\t,a.[item_value]\n\t,a.[acknowledged]\n\t,a.[created_date]\n\t,a.[position_desc]\n\t,a.[revision_date]\n\t,a.[revision_by]\n\t,a.[long_username]\n\t,a.[revision_date_utc_offset]\nINTO #as_response\nFROM as_response AS a\nINNER JOIN as_assessment AS b \nON a.assess_id = b.assess_id\nwhere b.fac_id=@facid\nand b.assess_date>=@trim_date\n\nINSERT INTO as_response_temp\nselect *\nfrom #as_response\n\nset @i=@i+1\nend\n\nINSERT INTO as_response_temp\nSELECT a.*\nFROM as_response as a \ninner join as_assessment as b\non a.assess_id=b.assess_id\nwhere b.assess_date>= @trim_date\nand b.fac_id =-1\n\n--=======================================================\n\nTRUNCATE TABLE as_response\n\nPRINT 'Moving as_response data back'\n\nSET IDENTITY_INSERT as_response ON\n\nINSERT INTO as_response (\n\tassess_response_id\n\t,assess_id\n\t,question_key\n\t,item_value\n\t,acknowledged\n\t,created_date\n\t,position_desc\n\t,revision_date\n\t,revision_by\n\t,long_username\n\t,revision_date_utc_offset\n\t)\nSELECT assess_response_id\n\t,assess_id\n\t,question_key\n\t,item_value\n\t,acknowledged\n\t,created_date\n\t,position_desc\n\t,revision_date\n\t,revision_by\n\t,long_username\n\t,revision_date_utc_offset\nFROM as_response_temp\n\nSET IDENTITY_INSERT as_response OFF\n\nDROP TABLE as_response_temp",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "12:00:00"
+							}
+						},
+						{
+							"name": "emar aging",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "as_response aging",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_src_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_src_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_src_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.src_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "PRINT 'Aging EMAR data started'\n\nALTER TABLE pho_schedule_details DISABLE TRIGGER tp_pho_schedule_details_del\nIF EXISTS (SELECT 1 FROM sys.change_tracking_tables WHERE object_id = OBJECT_ID('dbo.pho_schedule_details')) \nBEGIN ALTER TABLE pho_schedule_details DISABLE CHANGE_TRACKING END\n\nDROP TABLE IF EXISTS pho_schedule_details_temp\n\nCREATE TABLE [dbo].[pho_schedule_details_temp] (\n\t[pho_schedule_detail_id] [bigint] NOT NULL\n\t,[pho_schedule_id] [int] NOT NULL\n\t,[created_by] [varchar](60) NOT NULL\n\t,[created_date] [datetime] NOT NULL\n\t,[revision_by] [varchar](60) NULL\n\t,[revision_date] [datetime] NULL\n\t,[deleted] [varchar](1) NOT NULL\n\t,[deleted_by] [varchar](60) NULL\n\t,[deleted_date] [datetime] NULL\n\t,[perform_by] [varchar](60) NULL\n\t,[perform_date] [datetime] NULL\n\t,[chart_code] [varchar](31) NULL\n\t,[strike_out_id] [int] NULL\n\t,[followup_result] [char](1) NULL\n\t,[schedule_date] [datetime] NULL\n\t,[dose] [varchar](31) NULL\n\t,[modified_quantity] [varchar](31) NULL\n\t,[perform_initials] [varchar](4) NULL\n\t,[followup_by] [varchar](60) NULL\n\t,[followup_date] [datetime] NULL\n\t,[followup_initials] [varchar](4) NULL\n\t,[followup_pn_id] [int] NULL\n\t,[schedule_date_end] [datetime] NULL\n\t,[detail_supply_id] [int] NULL\n\t,[effective_date] [datetime] NULL\n\t,[followup_effective_date] [datetime] NULL\n\t) ON [PRIMARY]\n\n\n-- Disable non-clustered indexes on pho_schedule_details\nALTER INDEX pho_schedule_details__phoScheduleId_performDate_IX ON pho_schedule_details disable\n\nALTER INDEX pho_schedule_details__phoScheduleDetailId_PK ON pho_schedule_details disable\n\nALTER INDEX pho_schedule_details__phoScheduleId_deleted_IX ON pho_schedule_details disable\n\nALTER INDEX pho_schedule_details__phoScheduleId_performDate_IX ON pho_schedule_details disable\n\nALTER INDEX pho_schedule_details__scheduleDate_phoScheduleId_INC_scheduleDateEnd_FLT_IX ON pho_schedule_details disable\n\nALTER INDEX pho_schedule_details_orderSupplyId_IX ON pho_schedule_details disable\n\n\n--select * from pho_schedule_details_temp\nDECLARE @trim_date DATETIME\n\nSET @trim_date = dateadd(mm, - 1, datediff(dd, 0, getdate()))\n\n--=======================================\ndeclare @fac_id varchar(max)\nset @fac_id = '@{activity('Single_Input').output.firstRow.SrcFacIDs}'\n\nIF (object_id('tempdb..#temp_Facility', 'U') IS NOT NULL)\nBEGIN\n\tDROP TABLE #temp_Facility\nEND\n\nselect facid, row_number () over (order by facid) as rown\ninto #temp_Facility\nfrom (select cast(items as int) as facid\nfrom dbo.split (@fac_id,',')) as t\n\ndeclare @count int\ndeclare @i int\n\nselect @count=count(*) from #temp_Facility\nset @i=1\n\nwhile @i<=@count\n\nbegin \n\nIF (object_id('tempdb..#pho_schedule_details', 'U') IS NOT NULL)\nBEGIN\n\tDROP TABLE #pho_schedule_details\nEND\n\ndeclare @facid int\nselect @facid=facid from #temp_Facility where rown=@i\n\nSELECT a.pho_schedule_detail_id\n\t,a.pho_schedule_id\n\t,a.created_by\n\t,a.created_date\n\t,a.revision_by\n\t,a.revision_date\n\t,a.deleted\n\t,a.deleted_by\n\t,a.deleted_date\n\t,a.perform_by\n\t,a.perform_date\n\t,a.chart_code\n\t,a.strike_out_id\n\t,a.followup_result\n\t,a.schedule_date\n\t,a.dose\n\t,a.modified_quantity\n\t,a.perform_initials\n\t,a.followup_by\n\t,a.followup_date\n\t,a.followup_initials\n\t,a.followup_pn_id\n\t,a.schedule_date_end\n\t,a.detail_supply_id\n\t,a.effective_date\n\t,a.followup_effective_date\ninto #pho_schedule_details\nFROM pho_schedule_details as a \ninner join pho_schedule as b \non a.pho_schedule_id = b.schedule_id\nWHERE a.schedule_date >= @trim_date\nand b.fac_id = @facid  \n\nINSERT INTO pho_schedule_details_temp (\n\tpho_schedule_detail_id\n\t,pho_schedule_id\n\t,created_by\n\t,created_date\n\t,revision_by\n\t,revision_date\n\t,deleted\n\t,deleted_by\n\t,deleted_date\n\t,perform_by\n\t,perform_date\n\t,chart_code\n\t,strike_out_id\n\t,followup_result\n\t,schedule_date\n\t,dose\n\t,modified_quantity\n\t,perform_initials\n\t,followup_by\n\t,followup_date\n\t,followup_initials\n\t,followup_pn_id\n\t,schedule_date_end\n\t,detail_supply_id\n\t,effective_date\n\t,followup_effective_date\n\t)\nselect *\nfrom #pho_schedule_details\n\nset @i=@i+1\nend \n\nINSERT INTO pho_schedule_details_temp (\n\tpho_schedule_detail_id\n\t,pho_schedule_id\n\t,created_by\n\t,created_date\n\t,revision_by\n\t,revision_date\n\t,deleted\n\t,deleted_by\n\t,deleted_date\n\t,perform_by\n\t,perform_date\n\t,chart_code\n\t,strike_out_id\n\t,followup_result\n\t,schedule_date\n\t,dose\n\t,modified_quantity\n\t,perform_initials\n\t,followup_by\n\t,followup_date\n\t,followup_initials\n\t,followup_pn_id\n\t,schedule_date_end\n\t,detail_supply_id\n\t,effective_date\n\t,followup_effective_date\n\t)\nSELECT a.pho_schedule_detail_id\n\t,a.pho_schedule_id\n\t,a.created_by\n\t,a.created_date\n\t,a.revision_by\n\t,a.revision_date\n\t,a.deleted\n\t,a.deleted_by\n\t,a.deleted_date\n\t,a.perform_by\n\t,a.perform_date\n\t,a.chart_code\n\t,a.strike_out_id\n\t,a.followup_result\n\t,a.schedule_date\n\t,a.dose\n\t,a.modified_quantity\n\t,a.perform_initials\n\t,a.followup_by\n\t,a.followup_date\n\t,a.followup_initials\n\t,a.followup_pn_id\n\t,a.schedule_date_end\n\t,a.detail_supply_id\n\t,a.effective_date\n\t,a.followup_effective_date\nFROM pho_schedule_details as a \ninner join pho_schedule as b \non a.pho_schedule_id = b.schedule_id\nWHERE a.schedule_date >= @trim_date\nand b.fac_id =-1\n\nIF EXISTS (\n\t\tSELECT *\n\t\tFROM sys.foreign_keys\n\t\tWHERE object_id = OBJECT_ID(N'[dbo].[pho_chartcode_history__phoScheduleDetailId_FK]')\n\t\t\tAND parent_object_id = OBJECT_ID(N'[dbo].[pho_chartcode_history]')\n\t\t)\n\tALTER TABLE [dbo].[pho_chartcode_history]\n\nDROP CONSTRAINT [pho_chartcode_history__phoScheduleDetailId_FK]\n\nTRUNCATE TABLE pho_schedule_details\n\nSET IDENTITY_INSERT pho_schedule_details ON\n\nINSERT INTO pho_schedule_details (\n\tpho_schedule_detail_id\n\t,pho_schedule_id\n\t,created_by\n\t,created_date\n\t,revision_by\n\t,revision_date\n\t,deleted\n\t,deleted_by\n\t,deleted_date\n\t,perform_by\n\t,perform_date\n\t,chart_code\n\t,strike_out_id\n\t,followup_result\n\t,schedule_date\n\t,dose\n\t,modified_quantity\n\t,perform_initials\n\t,followup_by\n\t,followup_date\n\t,followup_initials\n\t,followup_pn_id\n\t,schedule_date_end\n\t,detail_supply_id\n\t,effective_date\n\t,followup_effective_date\n\t)\nSELECT pho_schedule_detail_id\n\t,pho_schedule_id\n\t,created_by\n\t,created_date\n\t,revision_by\n\t,revision_date\n\t,deleted\n\t,deleted_by\n\t,deleted_date\n\t,perform_by\n\t,perform_date\n\t,chart_code\n\t,strike_out_id\n\t,followup_result\n\t,schedule_date\n\t,dose\n\t,modified_quantity\n\t,perform_initials\n\t,followup_by\n\t,followup_date\n\t,followup_initials\n\t,followup_pn_id\n\t,schedule_date_end\n\t,detail_supply_id\n\t,effective_date\n\t,followup_effective_date\nFROM pho_schedule_details_temp\n\nSET IDENTITY_INSERT pho_schedule_details OFF\n\nDROP TABLE pho_schedule_details_temp\n\n-- Re-enable indexes for pho_scedule_details table\nALTER INDEX pho_schedule_details__phoScheduleId_performDate_IX ON pho_schedule_details rebuild\n\nALTER INDEX pho_schedule_details__phoScheduleDetailId_PK ON pho_schedule_details rebuild\n\nALTER INDEX pho_schedule_details__phoScheduleId_deleted_IX ON pho_schedule_details rebuild\n\nALTER INDEX pho_schedule_details__phoScheduleId_performDate_IX ON pho_schedule_details rebuild\n\nALTER INDEX pho_schedule_details__scheduleDate_phoScheduleId_INC_scheduleDateEnd_FLT_IX ON pho_schedule_details rebuild\n\nALTER INDEX pho_schedule_details_orderSupplyId_IX ON pho_schedule_details rebuild\n\n\nUPDATE process_configuration\nSET current_history_end_date = @trim_date\n\t,revision_date = GETDATE()\nWHERE process_name = 'EMAR_AGING'\n\n\nALTER TABLE pho_schedule_details enable TRIGGER tp_pho_schedule_details_del\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "12:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Snapshot Module Clean up",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Custom Post Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.If_Trimming,'N')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "sproc_snapshot_post_cleanups",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[operational].[sproc_snapshot_post_cleanups]",
+								"storedProcedureParameters": {
+									"ar_start_date": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.New_AR_Start}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"case_number": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_alert": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_Alerts}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_ar": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_AR}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_cp_lib": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_CP_Lib}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_glap": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_GLAP}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_glapbank": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_GLAP_Bank}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_inc": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_Inc}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_insur_companies": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_Master_Insur}\n",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_online_doc": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_MISC}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_qia": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_QIA}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_sec_role": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_Roles}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"exclude_trust": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.Exclude_Trust}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"if_bkp_tables": {
+										"value": "Y",
+										"type": "String"
+									},
+									"log_db": {
+										"value": "pcc_temp_storage",
+										"type": "String"
+									},
+									"template_db": {
+										"value": "[vmuspatmpcli01.pccprod.local].us_template_pccsingle_tmpltOH",
+										"type": "String"
+									},
+									"exclude_admin_notes": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.exclude_admin_notes}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "trim_snapshot_mi_dst_test",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"t_s_dst_test_server": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+										"type": "Expression"
+									},
+									"t_s_dst_test_db": {
+										"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Error Email",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "sproc_snapshot_trim_copy2_joins",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "trim_snapshot_mi_dst_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"t_s_dst_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_server,'[',''),']','')",
+							"type": "Expression"
+						},
+						"t_s_dst_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.dst_db,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "use pcc_temp_storage\n\ndeclare @subject varchar(200)\ndeclare @message varchar(2000)\n\nif exists (select 1 from trimlog_@{activity('Single_Input').output.firstRow.CaseNo} where msg like '%copyerror%')\nbegin\nset @subject = 'Trimming/Snapshot Error - ' + '@{activity('Single_Input').output.firstRow.CaseNo}'\nset @message = 'Error encountered during process. Please check log.'\n\nEXEC msdb.dbo.sp_send_dbmail @recipients = '@{activity('Single_Input').output.firstRow.ds_resource}@pointclickcare.com'\n\t,@subject = @subject\n\t,@body = @message\n\t,@body_format = 'HTML';\nend",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "10:00:00"
+				}
+			}
+		],
+		"folder": {
+			"name": "Snapshot and Trimming"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-07-12T19:53:55Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

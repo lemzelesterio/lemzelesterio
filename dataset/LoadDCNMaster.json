@@ -1,0 +1,143 @@
+{
+	"name": "LoadDCNMaster",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ds_merge_master",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "TSJOB"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "RunID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PMO_Group_Id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "CaseNo",
+				"type": "varchar"
+			},
+			{
+				"name": "PMO_number",
+				"type": "varchar"
+			},
+			{
+				"name": "DS_resource",
+				"type": "varchar"
+			},
+			{
+				"name": "SrcOrgCode",
+				"type": "varchar"
+			},
+			{
+				"name": "SrcOrgCodeProd",
+				"type": "varchar"
+			},
+			{
+				"name": "DstOrgCode",
+				"type": "varchar"
+			},
+			{
+				"name": "DstOrgCodeProd",
+				"type": "varchar"
+			},
+			{
+				"name": "SrcFacIDs",
+				"type": "varchar"
+			},
+			{
+				"name": "NetSuite_IDs",
+				"type": "varchar"
+			},
+			{
+				"name": "If_Current_Resident",
+				"type": "varchar"
+			},
+			{
+				"name": "Current_Resident_As_Of",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Exclude_Admin_Notes",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_Cust_UDA",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_CP_Lib",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_Alerts",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_Inc",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_MISC",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_Roles",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_AR",
+				"type": "varchar"
+			},
+			{
+				"name": "New_AR_Start",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Exclude_Trust",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_GLAP",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_GLAP_Bank",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_Master_Insur",
+				"type": "varchar"
+			},
+			{
+				"name": "Exclude_QIA",
+				"type": "varchar"
+			},
+			{
+				"name": "ProdRun",
+				"type": "varchar"
+			},
+			{
+				"name": "Completed",
+				"type": "bit"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "LoadDCNMaster"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

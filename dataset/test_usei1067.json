@@ -1,0 +1,20 @@
+{
+	"name": "test_usei1067",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "test_usei1067",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "TSCON11"
+		},
+		"annotations": [],
+		"type": "AzureSqlMITable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "facility"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,37 @@
+{
+	"name": "Ketki_golive",
+	"properties": {
+		"description": "E014664",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_2369_SSM_KEREM",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2022-09-07T09:49:00",
+				"endTime": "2022-09-07T23:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						3
+					],
+					"hours": [
+						10
+					],
+					"monthDays": [
+						7
+					]
+				}
+			}
+		}
+	}
+}

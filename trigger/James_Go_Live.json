@@ -1,0 +1,37 @@
+{
+	"name": "James_Go_Live",
+	"properties": {
+		"description": "E014571",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_2863_MAESTRO_to_NEW",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2022-08-09T15:00:00",
+				"endTime": "2022-08-12T00:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						35
+					],
+					"hours": [
+						16
+					],
+					"monthDays": [
+						9
+					]
+				}
+			}
+		}
+	}
+}

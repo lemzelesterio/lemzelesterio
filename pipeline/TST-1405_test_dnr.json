@@ -1,0 +1,86 @@
+{
+	"name": "TST-1405_test_dnr",
+	"properties": {
+		"activities": [
+			{
+				"name": "PCC Connect Disable in Source",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Single_Input",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "src_test",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"src_test_server": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.SRC_SERVER,'[',''),']','')",
+							"type": "Expression"
+						},
+						"src_test_db": {
+							"value": "@replace(replace(activity('Single_Input').output.firstRow.SRC_DB,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "SELECT src.* INTO pcc_temp_storage.dbo._bkp_message_profile_@{activity('Single_Input').output.firstRow.CaseNo}\nFROM @{activity('Single_Input').output.firstRow.SRCPROD_SERVER_DB}.dbo.message_profile src\nJOIN @{activity('Single_Input').output.firstRow.SRCPROD_SERVER_DB}.dbo.lib_message_profile ON src.message_profile_id = lib_message_profile.message_profile_id\nwhere src.fac_id IN (@{activity('Single_Input').output.firstRow.SrcFacIDs}) AND lib_message_profile.vendor_code = 'collective-postacute'\n\n\nDELETE src FROM @{activity('Single_Input').output.firstRow.SRCPROD_SERVER_DB}.dbo.message_profile src\nJOIN @{activity('Single_Input').output.firstRow.SRCPROD_SERVER_DB}.dbo.lib_message_profile ON src.message_profile_id = lib_message_profile.message_profile_id\nwhere src.fac_id IN (@{activity('Single_Input').output.firstRow.SrcFacIDs}) AND lib_message_profile.vendor_code = 'collective-postacute'",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Single_Input",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "SELECT TOP 1\nRunID,PMO_Group_Id\n,'EICase' + CaseNo as CaseNo\n,PMO_number,SrcOrgCode,SrcOrgCodeProd,DstOrgCode,DstOrgCodeProd,SrcFacIDs\n,Exclude_Admin_Notes,Exclude_Cust_UDA,Exclude_CP_Lib,Exclude_Alerts,Exclude_Inc\n,Exclude_MISC,Exclude_Roles,Exclude_AR\n,convert(varchar,New_AR_Start,121) as New_AR_Start\n,Exclude_Trust,Exclude_GLAP,Exclude_GLAP_Bank\n,Exclude_Master_Insur,Exclude_QIA,ProdRun,Completed,If_Current_Resident\n,convert(varchar,Current_Resident_As_Of,121) as Current_Resident_As_Of\n,'[' + SRC.ServerName + ']' AS SRC_SERVER\n,'[' + SRC.ServerName + '].' + SRC.DatabaseName AS SRC_SERVER_DB\n,SRC.DatabaseName AS SRC_DB\n,'[' + SRCPROD.ServerName + ']' AS SRCPROD_SERVER\n,'[' + SRCPROD.ServerName + '].' + SRCPROD.DatabaseName AS SRCPROD_SERVER_DB\n,SRCPROD.DatabaseName AS SRCPROD_DB\n,'[' + DST.ServerName + ']' AS DST_SERVER\n,'[' + DST.ServerName + '].' + DST.DatabaseName AS DST_SERVER_DB\n,DST.DatabaseName AS DST_DB\n,'[' + DSTPROD.ServerName + ']' AS DSTPROD_SERVER\n,'[' + DSTPROD.ServerName + '].' + DSTPROD.DatabaseName AS DSTPROD_SERVER_DB\n,DSTPROD.DatabaseName AS DSTPROD_DB\n,DSTPROD.OrgID AS DSTPROD_ORGID\n,NetSuite_IDs\n,ds_resource\n,If_Multi_to_Single\nFROM LOADDCNMASTER WITH (NOLOCK)\nJOIN ds_tasks.dbo.TS_global_organization_master SRC WITH (NOLOCK) ON LOADDCNMASTER.SrcOrgCode = SRC.OrgCode AND SRC.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master SRCPROD WITH (NOLOCK) ON LOADDCNMASTER.SrcOrgCodeProd = SRCPROD.OrgCode AND SRCPROD.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master DST WITH (NOLOCK) ON LOADDCNMASTER.DstOrgCode = DST.OrgCode AND DST.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master DSTPROD WITH (NOLOCK) ON LOADDCNMASTER.DstOrgCodeProd = DSTPROD.OrgCode AND DSTPROD.DELETED = 'N'\nWHERE RUNID = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "LoadDCNMaster",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "Do Not Use"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-28T16:22:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

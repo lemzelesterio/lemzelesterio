@@ -1,0 +1,16 @@
+{
+	"name": "test_ushd1ghc_src",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "test_ushd1ghc_src",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "vmuspassvstg04"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,36 @@
+{
+	"name": "Ruby_go_Live",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_6709_ELCC_to_RXHG",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2024-02-13T11:00:00",
+				"endTime": "2024-02-13T20:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						12
+					],
+					"monthDays": [
+						13
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,276 @@
+{
+	"name": "test_data_set",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "test_sql_user",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Do Not Use"
+		},
+		"annotations": [],
+		"type": "AzureSqlMITable",
+		"schema": [
+			{
+				"name": "fac_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "deleted",
+				"type": "varchar"
+			},
+			{
+				"name": "created_by",
+				"type": "varchar"
+			},
+			{
+				"name": "created_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "revision_by",
+				"type": "varchar"
+			},
+			{
+				"name": "revision_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "org_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "name",
+				"type": "varchar"
+			},
+			{
+				"name": "address1",
+				"type": "varchar"
+			},
+			{
+				"name": "address2",
+				"type": "varchar"
+			},
+			{
+				"name": "city",
+				"type": "varchar"
+			},
+			{
+				"name": "prov",
+				"type": "varchar"
+			},
+			{
+				"name": "country_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "tel",
+				"type": "varchar"
+			},
+			{
+				"name": "fax",
+				"type": "varchar"
+			},
+			{
+				"name": "email",
+				"type": "varchar"
+			},
+			{
+				"name": "web_site",
+				"type": "varchar"
+			},
+			{
+				"name": "pc",
+				"type": "varchar"
+			},
+			{
+				"name": "ip_address_mask",
+				"type": "varchar"
+			},
+			{
+				"name": "time_zone",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "timeout_minutes",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "drug_lib_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ltc_provider_no",
+				"type": "varchar"
+			},
+			{
+				"name": "facility_type",
+				"type": "varchar"
+			},
+			{
+				"name": "company_code",
+				"type": "varchar"
+			},
+			{
+				"name": "facility_code",
+				"type": "varchar"
+			},
+			{
+				"name": "division_code",
+				"type": "varchar"
+			},
+			{
+				"name": "DELETED_BY",
+				"type": "varchar"
+			},
+			{
+				"name": "DELETED_DATE",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "security_role_update",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "health_type",
+				"type": "varchar"
+			},
+			{
+				"name": "regional_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "facility_group_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "security_client_list_update",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "adjust_for_dst",
+				"type": "varchar"
+			},
+			{
+				"name": "phone_ext",
+				"type": "varchar"
+			},
+			{
+				"name": "fax2",
+				"type": "varchar"
+			},
+			{
+				"name": "county_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "irm_referral_fax",
+				"type": "varchar"
+			},
+			{
+				"name": "irm_referral_email",
+				"type": "varchar"
+			},
+			{
+				"name": "is_live",
+				"type": "varchar"
+			},
+			{
+				"name": "messages_enabled_flag",
+				"type": "varchar"
+			},
+			{
+				"name": "poc_timeout",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "inactive",
+				"type": "varchar"
+			},
+			{
+				"name": "inactive_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "collections_agency_client_number",
+				"type": "varchar"
+			},
+			{
+				"name": "use_protocol_flag",
+				"type": "char"
+			},
+			{
+				"name": "direct_message_email",
+				"type": "varchar"
+			},
+			{
+				"name": "alerts_for_missing_demographic",
+				"type": "bit"
+			},
+			{
+				"name": "alerts_for_missing_diagnosis_sheet",
+				"type": "bit"
+			},
+			{
+				"name": "aggr_enabled",
+				"type": "char"
+			},
+			{
+				"name": "bed_hold_configuration",
+				"type": "char"
+			},
+			{
+				"name": "legal_name",
+				"type": "varchar"
+			},
+			{
+				"name": "balexp_collection_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "balexp_generation_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "fac_uuid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "acf_capacity",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "facility"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

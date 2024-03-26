@@ -1,0 +1,30 @@
+{
+	"name": "Ashwin_GL",
+	"properties": {
+		"description": "Ashwin_GL",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2023-01-24T10:00:00",
+				"endTime": "2023-01-25T08:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						12
+					],
+					"monthDays": [
+						24
+					]
+				}
+			}
+		}
+	}
+}

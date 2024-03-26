@@ -1,0 +1,1604 @@
+{
+	"name": "TST-1340 FCC2 to NewOrg",
+	"properties": {
+		"activities": [
+			{
+				"name": "Single_Input",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "SELECT TOP 1\nRunID,PMO_Group_Id\n,'EICase' + CaseNo as CaseNo\n,PMO_number,SrcOrgCode,SrcOrgCodeProd,DstOrgCode,DstOrgCodeProd,SrcFacIDs\n,Exclude_Admin_Notes,Exclude_Cust_UDA,Exclude_CP_Lib,Exclude_Alerts,Exclude_Inc\n,Exclude_MISC,Exclude_Roles,Exclude_AR\n,convert(varchar,New_AR_Start,121) as New_AR_Start\n,Exclude_Trust,Exclude_GLAP,Exclude_GLAP_Bank\n,Exclude_Master_Insur,Exclude_QIA,ProdRun,Completed,If_Current_Resident\n,convert(varchar,Current_Resident_As_Of,121) as Current_Resident_As_Of\n,'[' + SRC.ServerName + ']' AS SRC_SERVER\n,'[' + SRC.ServerName + '].' + SRC.DatabaseName AS SRC_SERVER_DB\n,SRC.DatabaseName AS SRC_DB\n,'[' + SRCPROD.ServerName + ']' AS SRCPROD_SERVER\n,'[' + SRCPROD.ServerName + '].' + SRCPROD.DatabaseName AS SRCPROD_SERVER_DB\n,SRCPROD.DatabaseName AS SRCPROD_DB\n,'[' + DST.ServerName + ']' AS DST_SERVER\n,'[' + DST.ServerName + '].' + DST.DatabaseName AS DST_SERVER_DB\n,DST.DatabaseName AS DST_DB\n,'[' + DSTPROD.ServerName + ']' AS DSTPROD_SERVER\n,'[' + DSTPROD.ServerName + '].' + DSTPROD.DatabaseName AS DSTPROD_SERVER_DB\n,DSTPROD.DatabaseName AS DSTPROD_DB\n,DSTPROD.OrgID AS DSTPROD_ORGID\n,NetSuite_IDs\n,ds_resource\n,If_Multi_to_Single\nFROM LOADDCNMASTER WITH (NOLOCK)\nJOIN ds_tasks.dbo.TS_global_organization_master SRC WITH (NOLOCK) ON LOADDCNMASTER.SrcOrgCode = SRC.OrgCode AND SRC.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master SRCPROD WITH (NOLOCK) ON LOADDCNMASTER.SrcOrgCodeProd = SRCPROD.OrgCode AND SRCPROD.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master DST WITH (NOLOCK) ON LOADDCNMASTER.DstOrgCode = DST.OrgCode AND DST.DELETED = 'N'\nJOIN ds_tasks.dbo.TS_global_organization_master DSTPROD WITH (NOLOCK) ON LOADDCNMASTER.DstOrgCodeProd = DSTPROD.OrgCode AND DSTPROD.DELETED = 'N'\nWHERE RUNID = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "LoadDCNMaster",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Fac_ID and No Join",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Scoping Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Joins Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Copy Facility Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Scoping Tables').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "Copy Fac_id Tables",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get Conditions Scoping",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "@{activity('Get Conditions Scoping').output.firstrow.conditions}",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "SqlMISink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 8
+							},
+							"inputs": [
+								{
+									"referenceName": "test_usei960",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "@item().TABLE_NAME",
+										"SchemaName": "@item().TABLE_SCHEMA"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "test_usei1053",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "@item().TABLE_NAME",
+										"SchemaName": "@item().TABLE_SCHEMA"
+									}
+								}
+							]
+						},
+						{
+							"name": "Get Conditions Scoping",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "select top 1 conditions\nfrom _copyfacconditions\nwhere table_name = '@{item().TABLE_NAME}'\n\n",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "test_usei960",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@item().TABLE_NAME",
+											"type": "Expression"
+										},
+										"SchemaName": {
+											"value": "@item().TABLE_SCHEMA",
+											"type": "Expression"
+										}
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Scoping Tables",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_getAllConditions",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": {
+							"value": "SELECT * from _copyfacconditions with (nolock)\nwhere Table_Type in ('system','scoping')\nand table_name not in ('facility','ar_letters')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "test_usei960",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "_copyfacconditions",
+							"SchemaName": "dbo"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Joins Tables",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_getAllConditions",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": {
+							"value": "SELECT * from _copyfacconditions with (nolock)\nwhere Table_Type in ('joins')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "test_usei960",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "_copyfacconditions",
+							"SchemaName": "dbo"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Joins",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Fac_ID and No Join",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Joins Tables').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get Conditions Joins",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "select top 1 conditions\nfrom _copyfacconditions with (nolock)\nwhere table_name = '@{item().TABLE_NAME}'\n\n",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "test_usei960",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@item().TABLE_NAME",
+											"type": "Expression"
+										},
+										"SchemaName": {
+											"value": "@item().TABLE_SCHEMA",
+											"type": "Expression"
+										}
+									}
+								}
+							}
+						},
+						{
+							"name": "Copy_with_Conditions",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get Conditions Joins",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "@{activity('Get Conditions Joins').output.firstrow.conditions}",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "SqlMISink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 1
+							},
+							"inputs": [
+								{
+									"referenceName": "test_usei960",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "@item().TABLE_NAME",
+										"SchemaName": "@item().TABLE_SCHEMA"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "test_usei1053",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "@item().TABLE_NAME",
+										"SchemaName": "@item().TABLE_SCHEMA"
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_getAllConditions",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Restore Source if Go-live",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_getAllConditions]",
+					"storedProcedureParameters": {
+						"cur_res_as_of": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Current_Resident_As_Of}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"dstDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DST_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Exclude_AR": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_AR}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Exclude_Cust_UDA": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Cust_UDA}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Exclude_Trust": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Trust}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"tsJobServer": {
+							"value": "[vmuspassvtsjob1.pccprod.local].ds_merge_master",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei960",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_disableAndCleanup",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Restore Destination if Go-live",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_disableAndCleanup]"
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei1053",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_enableAll",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Joins",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Special Copy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_enableAll]"
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei1053",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_pre_std_fix",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Restore Source if Go-live",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_pre_std_fix]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei960",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Restore and Report if Go-live",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Custom Post Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.ProdRun,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Bkp and Clean up temp tables",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @ID INT\nDECLARE @TableName varchar(500)\nDECLARE @rowcount int\nDECLARE @SQL varchar(max)\nDECLARE @casenumber varchar(100)\nDECLARE @log_db varchar(100) = 'pcc_temp_storage'\n\n\nSET @casenumber = '@{activity('Single_Input').output.firstRow.CaseNo}'\n\n\nDECLARE MyCursor CURSOR FOR\n\tselect  name\n\tfrom sys.objects where type = 'U' and name in ('_TrimFK','_TrimTriggers','_TrimViews','_TrimTable','_CopyTable','CopyFac','CopyFacJoin','_OtherFac_id_table','_copyfacconditions')\nOPEN MyCursor\nFETCH NEXT FROM MyCursor INTO @TableName\nWHILE @@Fetch_Status =0\nBEGIN\n\t\n\t\tSET @SQL = 'select * into ' + @log_db + '.dbo.' + @casenumber + @TableName + ' from dbo.' + @TableName\n\t\tPRINT @SQL\n\t\tEXEC (@SQL)\n\n\t\tSET @SQL = 'drop table dbo.' + @TableName\n\t\tPRINT @SQL\n\t\tEXEC (@SQL)\n\t\t\n\tFETCH NEXT FROM MyCursor INTO @TableName\n\tEND\nCLOSE MyCursor\nDEALLOCATE MyCursor\n\nselect  name\n\tfrom sys.objects where type = 'U' and name in ('_TrimFK','_TrimTriggers','_TrimViews','_TrimTable','_CopyTable','CopyFac','CopyFacJoin','_OtherFac_id_table','_copyfacconditions')",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "test_usei1053",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "facility",
+										"SchemaName": "dbo"
+									}
+								}
+							}
+						},
+						{
+							"name": "Completion Report",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Restore Destination back Go-live",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_dcn_generate_completion_report]",
+								"storedProcedureParameters": {
+									"go_live_date": {
+										"value": null,
+										"type": "String"
+									},
+									"pipeline_name": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"runid": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.RunID}",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Restore Destination back Go-live",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Bkp and Clean up temp tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_database_restore]",
+								"storedProcedureParameters": {
+									"case_number": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ds_resource": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DS_Resource}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pmo_group_id": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.PMO_Group_Id}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DST_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DST_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DSTPROD_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DSTPROD_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"vParts": {
+										"value": null,
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Disable Integrations in SRC If Prod Run",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Restore Source if Go-live",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.ProdRun,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "sproc_facacq_DisableIntegrationExecute",
+							"description": "",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_DisableIntegrationExecute]",
+								"storedProcedureParameters": {
+									"casenumber": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"destination_database_name": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"destination_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRC_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_tasks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_post_checks",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Custom Post Script in DST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_post_checks]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei1053",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_post_std_fix",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_enableAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_post_std_fix]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_prod_org_code": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DstOrgCodeProd}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fac_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcFacIDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						},
+						"netsuite_ids": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.NetSuite_IDs}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"org_id": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.DSTPROD_ORGID}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"prod_run": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.ProdRun}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source_db": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source_prod_org_code": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SrcOrgCodeProd}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source_prod_server_db": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.SRCPROD_SERVER_DB}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"template_db": {
+							"value": "[vmuspatmpcli01.pccprod.local].us_template_pccsingle_tmpltOH",
+							"type": "String"
+						},
+						"if_multi_to_single": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.if_multi_to_single}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei1053",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sproc_facacq_dcn_post_cleanups",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_enableAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_facacq_dcn_post_cleanups]",
+					"storedProcedureParameters": {
+						"ar_start_date": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.New_AR_Start}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"case_number": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_alert": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Alerts}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_ar": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_AR}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_cp_lib": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_CP_Lib}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_glap": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_GLAP}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_glapbank": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_GLAP_Bank}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_inc": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Inc}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_insur_companies": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Master_Insur}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_online_doc": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_MISC}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_qia": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_QIA}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_sec_role": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_QIA}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"exclude_trust": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.Exclude_Trust}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"if_bkp_tables": {
+							"value": "Y",
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						},
+						"template_db": {
+							"value": "[vmuspatmpcli01.pccprod.local].us_template_pccsingle_tmpltOH",
+							"type": "String"
+						},
+						"exclude_admin_notes": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.exclude_admin_notes}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "test_usei1053",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Custom Post Script in DST",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_post_std_fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sproc_facacq_dcn_post_cleanups",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Check If Single Facility",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": "select 1 from clients with (nolock)",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "test_usei1053",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "clients ",
+							"SchemaName": "dbo"
+						}
+					}
+				}
+			},
+			{
+				"name": "Custom Pre Script in SRC",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_pre_std_fix",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": "select 1 from clients with (nolock)",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "test_usei960",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "facility",
+							"SchemaName": "dbo"
+						}
+					}
+				}
+			},
+			{
+				"name": "Copy Facility Table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Custom Pre Script in SRC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sproc_facacq_dcn_disableAndCleanup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Disable Integrations in SRC If Prod Run",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": {
+							"value": "SELECT fac_id\n\t,deleted\n\t,created_by\n\t,created_date\n\t,revision_by\n\t,revision_date\n\t,org_id\n\t,name\n\t,address1\n\t,address2\n\t,city\n\t,prov\n\t,country_id\n\t,tel\n\t,fax\n\t,email\n\t,web_site\n\t,pc\n\t,ip_address_mask\n\t,time_zone\n\t,timeout_minutes\n\t,drug_lib_id\n\t,ltc_provider_no\n\t,facility_type\n\t,company_code\n\t,facility_code\n\t,division_code\n\t,DELETED_BY\n\t,DELETED_DATE\n\t,security_role_update\n\t,health_type\n\t,regional_id\n\t,facility_group_id\n\t,security_client_list_update\n\t,adjust_for_dst\n\t,phone_ext\n\t,fax2\n\t,county_id\n\t,irm_referral_fax\n\t,irm_referral_email\n\t,is_live\n\t,messages_enabled_flag\n\t,poc_timeout\n\t,inactive\n\t,inactive_date\n\t,collections_agency_client_number\n\t,use_protocol_flag\n\t,direct_message_email\n\t,alerts_for_missing_demographic\n\t,alerts_for_missing_diagnosis_sheet\n\t,aggr_enabled\n\t,bed_hold_configuration\n\t,legal_name\n\t,balexp_collection_date\n\t,balexp_generation_date\n\t,acf_capacity\nFROM dbo.facility WITH (NOLOCK)\nWHERE fac_id IN (@{activity('Single_Input').output.firstRow.SrcFacIDs})",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlMISink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "test_usei960",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "facility",
+							"SchemaName": "dbo"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "test_usei1053",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "facility",
+							"SchemaName": "dbo"
+						}
+					}
+				]
+			},
+			{
+				"name": "Special Copy",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy Facility Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlMISource",
+						"sqlReaderQuery": {
+							"value": "insert into ar_letters\nselect [letter_id],[letter_name],[description],[body],[header],[footer],[letter_template_id],[created_by],[created_date]\n,[revision_by],[revision_date],[deleted_date],[deleted],[deleted_by],[closing],[signature_img],[signature_name],[signature_user]\n,[signature_title],[signature_facility_name],[subject],[facility_address],[facility_phone],[facility_fax],[letter_type],[use_account_address_flag],[facility_code] \nfrom @{activity('Single_Input').output.firstRow.SRC_DB}.dbo.ar_letters with (nolock) \n\nselect * from ar_letters with (nolock) ",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "test_usei1053",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "ar_letters",
+							"SchemaName": "dbo"
+						}
+					}
+				}
+			},
+			{
+				"name": "Restore Source if Go-live",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Single_Input",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.ProdRun,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Restore Source Go-Live",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_database_restore]",
+								"storedProcedureParameters": {
+									"case_number": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ds_resource": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DS_Resource}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pmo_group_id": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.PMO_Group_id}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRCPROD_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRCPROD_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRC_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.SRC_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"vParts": {
+										"value": null,
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Restore Destination if Go-live",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Notification Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.ProdRun,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Restore Destination Go-Live",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_database_restore]",
+								"storedProcedureParameters": {
+									"case_number": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.CaseNo}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ds_resource": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DS_Resource}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pmo_group_id": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.PMO_Group_Id}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DSTPROD_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_from_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DSTPROD_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_db": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DST_DB}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"restore_to_server": {
+										"value": {
+											"value": "@{activity('Single_Input').output.firstRow.DST_SERVER}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"vParts": {
+										"value": null,
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Check If Single Facility",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "sproc_facacq_dcn_enableAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Single_Input').output.firstRow.If_Multi_to_Single,'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Reset Caching",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlMISource",
+									"sqlReaderQuery": {
+										"value": "declare @timestamp datetime = getdate()\n\nexec [dbo].[pcc_update_cache_time] \n@fac_id = '@{activity('Single_Input').output.firstRow.SrcFacIDs}'\n,@cache_name = 'facilityRecs'\n,@cache_time = @timestamp OUTPUT\n\nexec [dbo].[pcc_update_cache_time] \n@fac_id = -1\n,@cache_name = 'MASTER'\n,@cache_time = @timestamp OUTPUT\n\nselect * from pcc_cache_time with (nolock)",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "test_usei1053",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "dbo",
+										"SchemaName": "facility"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Notification Finish",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Restore and Report if Go-live",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_facacq_dcn_email_notifications]",
+					"storedProcedureParameters": {
+						"email_type": {
+							"value": "F",
+							"type": "String"
+						},
+						"runid": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.RunID}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Notification Start",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Single_Input",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_facacq_dcn_email_notifications]",
+					"storedProcedureParameters": {
+						"email_type": {
+							"value": "S",
+							"type": "String"
+						},
+						"runid": {
+							"value": {
+								"value": "@{activity('Single_Input').output.firstRow.RunID}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"folder": {
+			"name": "Do Not Use"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-04-18T18:12:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

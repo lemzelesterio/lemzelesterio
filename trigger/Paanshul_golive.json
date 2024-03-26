@@ -1,0 +1,30 @@
+{
+	"name": "Paanshul_golive",
+	"properties": {
+		"description": "HRTG TO SUMHC",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2023-07-01T00:45:00",
+				"endTime": "2023-07-04T00:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						1
+					],
+					"hours": [
+						1
+					],
+					"monthDays": [
+						1
+					]
+				}
+			}
+		}
+	}
+}

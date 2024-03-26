@@ -1,0 +1,9 @@
+{
+	"name": "adf-use2-prod-fa",
+	"location": "eastus2",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "43335501-2591-44b2-81f0-27a4bb679cfb",
+		"tenantId": "0debab66-8676-46dc-96a0-5c6b3e9993bb"
+	}
+}

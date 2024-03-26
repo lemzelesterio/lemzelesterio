@@ -1,0 +1,49 @@
+{
+	"name": "Keya_test",
+	"properties": {
+		"description": "GMS_to_NEWORG_Golive",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_3264_VHM_NEWORG",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_4030_LCHC_LAKEC",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_6903_GMS_NEWORG",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2024-03-14T22:00:00",
+				"endTime": "2024-03-15T00:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						23
+					],
+					"monthDays": [
+						14
+					]
+				}
+			}
+		}
+	}
+}

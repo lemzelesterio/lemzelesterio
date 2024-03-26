@@ -1,0 +1,432 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Create Delta SPs",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[sproc_facacq_delta_SP_creation]",
+					"storedProcedureParameters": {
+						"destination_database_name": {
+							"value": {
+								"value": "@pipeline().parameters.test_db_src",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"destination_server": {
+							"value": {
+								"value": "@pipeline().parameters.test_server_src",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ds_merge_master",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Prepare Delta Tables",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Create Delta SPs",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "sproc_facacq_delta_prepare_tables",
+					"storedProcedureParameters": {
+						"data_source_server": {
+							"value": {
+								"value": "@pipeline().parameters.prod_server",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"data_source_db": {
+							"value": {
+								"value": "@pipeline().parameters.prod_db",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "delta_target",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"target_server": {
+							"value": "@replace(replace(pipeline().parameters.test_server_src,'[',''),']','')",
+							"type": "Expression"
+						},
+						"target_db": {
+							"value": "@replace(replace(pipeline().parameters.test_db_src,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Delta Sync",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Prepare Delta Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(1,2)",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get Current Version from Prod",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sproc_facacq_delta_check_version]",
+								"storedProcedureParameters": {
+									"source_db": {
+										"value": {
+											"value": "@pipeline().parameters.prod_db",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"source_server": {
+										"value": {
+											"value": "@pipeline().parameters.prod_server",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"test_db": {
+										"value": {
+											"value": "@pipeline().parameters.test_db_src",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"test_server": {
+										"value": {
+											"value": "@pipeline().parameters.test_server_src",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Sync Data",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get Current Version from Prod",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "sproc_facacq_delta_sync",
+								"storedProcedureParameters": {
+									"data_source_db": {
+										"value": {
+											"value": "@pipeline().parameters.prod_db",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"data_source_server": {
+										"value": {
+											"value": "@pipeline().parameters.prod_server",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"insert_to_db": {
+										"value": {
+											"value": "@pipeline().parameters.delta_staging_db",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"log_db": {
+										"value": "pcc_temp_storage",
+										"type": "String"
+									},
+									"sync_to_db": {
+										"value": {
+											"value": "@pipeline().parameters.test_db_dst",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "delta_target",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"target_server": {
+										"value": "@replace(replace(pipeline().parameters.test_server_src,'[',''),']','')",
+										"type": "Expression"
+									},
+									"target_db": {
+										"value": "@replace(replace(pipeline().parameters.test_db_src,'[',''),']','')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Update Last Sync Version",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Sync Data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ds_merge_master",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "@concat('update delta_sync_version_tracking\nset last_sync_version = target_sync_version\nwhere test_db_name = ''',pipeline().parameters.test_db_src,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Step 5 from Delta Staging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Delta Sync",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_copy_data1_facid_and_nojoin]",
+					"storedProcedureParameters": {
+						"fac_ids": {
+							"value": {
+								"value": "@pipeline().parameters.fac_ids",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@pipeline().parameters.delta_staging_Db",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"case_number": {
+							"value": {
+								"value": "@pipeline().parameters.case_number",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "delta_target",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"target_server": {
+							"value": "@replace(replace(pipeline().parameters.test_server_dst,'[',''),']','')",
+							"type": "Expression"
+						},
+						"target_db": {
+							"value": "@replace(replace(pipeline().parameters.test_db_dst,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Step 6 from Delta Staging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Step 5 from Delta Staging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[operational].[sproc_copy_data2_joins]",
+					"storedProcedureParameters": {
+						"case_number": {
+							"value": {
+								"value": "@pipeline().parameters.case_number",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sourceDB": {
+							"value": {
+								"value": "@pipeline().parameters.delta_staging_Db",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"log_db": {
+							"value": "pcc_temp_storage",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "delta_target",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"target_server": {
+							"value": "@replace(replace(pipeline().parameters.test_server_dst,'[',''),']','')",
+							"type": "Expression"
+						},
+						"target_db": {
+							"value": "@replace(replace(pipeline().parameters.test_db_dst,'[',''),']','')",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"concurrency": 5,
+		"parameters": {
+			"prod_server": {
+				"type": "string"
+			},
+			"prod_db": {
+				"type": "string"
+			},
+			"test_server_src": {
+				"type": "string"
+			},
+			"test_db_src": {
+				"type": "string"
+			},
+			"delta_staging_db": {
+				"type": "string"
+			},
+			"fac_ids": {
+				"type": "string"
+			},
+			"test_server_dst": {
+				"type": "string"
+			},
+			"case_number": {
+				"type": "string"
+			},
+			"test_db_dst": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Do Not Use"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-07T19:12:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

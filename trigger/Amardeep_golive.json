@@ -1,0 +1,37 @@
+{
+	"name": "Amardeep_golive",
+	"properties": {
+		"description": "Amardeep_golive",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DCN_TST_6762_GROVE_to_4RO",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2024-03-14T12:00:00",
+				"endTime": "2024-03-15T12:00:00",
+				"timeZone": "Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						13
+					],
+					"monthDays": [
+						14
+					]
+				}
+			}
+		}
+	}
+}
